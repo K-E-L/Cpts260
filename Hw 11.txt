@@ -1,0 +1,82 @@
+.text
+lui $t0, 0xFFFF				# turn on transmitter control bit at very beginning
+sw $0x0001, 8($t0)
+
+
+# Polling code for reading
+lui $t0, 0xFFFF				# $t0 is now the Receiver Control address
+li $t3, 0				# $t3 = count;
+la $t4, list				# puts address of list in $t4
+LOOP:
+	lw $t1, 0($t0)			# $t1 stores the 32-bit content of Receiver Control
+	andi $t2, $t1, 0x0001
+	beq $t2, $zero, LOOP		# $t2 = 0....00? (? = ready bit) ready bit == 1
+	lw $a0, 4($t0)
+	#j num2char
+	sw $a0, 0($t4)			# store the data from $a0 into the array
+	addi $t4, $t4, 4		# increment address of list by 4
+	addi $t3, $t3, 1		# ++count;
+	beq $t3, 4, EXIT		# checks to see if count == 4
+	j LOOP				# ready bit == 0
+EXIT:
+
+la $t4, list
+lw $a0, 0($t4)
+jal char2num
+move $t2, $v0				# $t0 holds X
+lw $a0, 8($t4)
+jal char2num
+move $t1, $v0				# $t1 holds Y
+add $t5, $t2, $t1			# $t5 holds Z
+move $a0, $t5
+jal num2char
+move $t5, $v0
+
+
+# Polling code for writing
+lui $t0, 0xFFFF
+li $t3, 0
+la $t4, list
+LOOP1:
+	lw $t1, 8($t0)			# $t1 = content of transmitter control
+	andi $t2, $t1, 0x0001		
+	beq $t2, $zero, LOOP1
+	lw $a0, 0($t4)
+	sw $a0, 12($t0)			# store 'a' to the transmitter data
+	addi $t4, $t4, 4
+	addi $t3, $t3, 1
+	beq $t3, 4, EXIT1
+	j LOOP1
+
+char2num:
+	lb $t0, asciiZero
+	subu $v0, $a0, $t0
+	jr $ra
+
+num2char:
+	lb $t0 asciiZero
+	addu $v0, $a0, $t0
+	jr $ra
+	
+EXIT1:
+# cout Z
+
+lui $t0, 0xFFFF
+li $t3, 0
+LOOP2:
+	lw $t1, 8($t0)	
+	andi $t2, $t1, 0x0001		
+	beq $t2, $zero, LOOP2
+	lw $a0, 0($t4)
+	sw $t5, 12($t0)
+	addi $t3, $t3, 1
+	beq $t3, 2, EXIT2
+	j LOOP2
+
+EXIT2:
+
+.data
+asciiZero: .byte '0'
+exp: .space 30
+char: .byte 'a'
+list: .word 0, 0, 0, 0

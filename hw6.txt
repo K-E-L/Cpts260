@@ -1,0 +1,55 @@
+.text
+
+li $s0, 3
+mtc1 $s0, $f0
+cvt.s.w $f0, $f0		# $f0 stores 3.0
+
+mtc1 $s0, $f1
+cvt.s.w $f1, $f1		# $f1 stores 3.0
+
+li $s0, 1
+li $s1, 100
+mtc1 $s0, $f6
+mtc1 $s1, $f8
+cvt.s.w $f6, $f6
+cvt.s.w $f8, $f8	
+div.s $f6, $f6, $f8		# $f6 stores .01
+
+li $s0, 1
+mtc1 $s0, $f2
+cvt.s.w $f2, $f2		# $f2 stores 1.0
+
+li $s0, 2
+mtc1 $s0, $f5
+cvt.s.w $f5, $f5		# $f5 stores 2.0
+
+				# $f2 holds f(k)
+				# $f3 holds f(k+1)
+				# $f4 holds f(k)^2 then 3/f(k)^2
+				# $f6 = precision
+				# $f7 = temp f(k)
+
+LOOP:
+mul.s $f4, $f2, $f2
+div.s $f4, $f0, $f4
+mul.s $f2, $f2, $f5
+add.s $f2, $f2, $f4
+div.s $f2, $f2, $f1
+mov.s $f3, $f2
+
+li $v0, 2
+mov.s $f12, $f3
+syscall
+
+mov.s $f7, $f2
+mul.s $f2, $f2, $f2
+mul.s $f2, $f2, $f7
+sub.s $f2, $f2, $f0
+abs.s $f2, $f2
+c.lt.s $f2, $f6
+
+
+bc1t EXIT
+mov.s $f2, $f3
+j LOOP
+EXIT:
